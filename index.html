@@ -3,1399 +3,521 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>BBD Software — Admin Portal</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Cinzel:wght@400;600;700;900&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
-
-<!-- Firebase -->
+<title>BBD — Admin Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, push, set, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyDLPAktzLmpfNX9XUmw9i_B2P2I3XPwOLs",
-    authDomain: "viccybank.firebaseapp.com",
-    databaseURL: "https://viccybank-default-rtdb.firebaseio.com",
-    projectId: "viccybank",
-    storageBucket: "viccybank.firebasestorage.app",
-    messagingSenderId: "328465601734",
-    appId: "1:328465601734:web:ae8d6bee3683be60629b32"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  window._db = db;
-  window._dbRef = ref;
-  window._dbPush = push;
-  window._dbSet = set;
-  window._dbOnValue = onValue;
-  window._dbUpdate = update;
-  window._dbRemove = remove;
-
-  onValue(ref(db, "bbd_applications"), (snap) => {
-    const data = snap.val();
-    window._applications = data
-      ? Object.entries(data).map(([id,v]) => ({...v, _id: id}))
-      : [];
-    if(window._adminUnlocked) refreshAll();
-  });
-
-  onValue(ref(db, "bbd_jobs"), (snap) => {
-    const data = snap.val();
-    window._jobs = data
-      ? Object.entries(data).map(([id,v]) => ({...v, _id: id}))
-      : [];
-    if(window._adminUnlocked) refreshAll();
-  });
-
-  onValue(ref(db, "bbd_form_config"), (snap) => {
-    window._formConfig = snap.val() || getDefaultFormConfig();
-    if(window._adminUnlocked) refreshAll();
-  });
+  import { getDatabase,ref,push,set,get,onValue,update,remove,query,orderByChild,equalTo }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  const cfg={apiKey:"AIzaSyDLPAktzLmpfNX9XUmw9i_B2P2I3XPwOLs",authDomain:"viccybank.firebaseapp.com",databaseURL:"https://viccybank-default-rtdb.firebaseio.com",projectId:"viccybank",storageBucket:"viccybank.firebasestorage.app",messagingSenderId:"328465601734",appId:"1:328465601734:web:ae8d6bee3683be60629b32"};
+  const app=initializeApp(cfg);const db=getDatabase(app);
+  window._db=db;window._ref=ref;window._push=push;window._set=set;window._get=get;
+  window._onValue=onValue;window._update=update;window._remove=remove;
+  window._query=query;window._obc=orderByChild;window._eq=equalTo;
+  onValue(ref(db,'bbd_applications'),snap=>{window._apps=snap.val()?Object.entries(snap.val()).map(([id,v])=>({...v,_id:id})):[];if(window._unlocked)refresh();});
+  onValue(ref(db,'bbd_jobs'),snap=>{window._jobs=snap.val()?Object.entries(snap.val()).map(([id,v])=>({...v,_id:id})):[];if(window._unlocked)refresh();});
+  onValue(ref(db,'bbd_service_requests'),snap=>{window._reqs=snap.val()?Object.entries(snap.val()).map(([id,v])=>({...v,_id:id})):[];if(window._unlocked)refresh();});
+  onValue(ref(db,'bbd_portal_workers'),snap=>{window._workers=snap.val()?Object.entries(snap.val()).map(([id,v])=>({...v,_id:id})):[];if(window._unlocked)refresh();});
+  onValue(ref(db,'bbd_config'),snap=>{window._config=snap.val()||{};if(window._unlocked)loadConfig();});
 </script>
-
 <style>
-:root {
-  --void:    #060608;
-  --deep:    #0A0A0F;
-  --surface: #0F0F17;
-  --panel:   #13131C;
-  --lift:    #1A1A26;
-  --border:  rgba(255,255,255,0.06);
-  --border2: rgba(255,255,255,0.1);
-  --crimson: #8B1A1A;
-  --blood:   #A82020;
-  --ember:   #C0392B;
-  --fire:    #E74C3C;
-  --gold:    #C9933A;
-  --gilt:    #E8B04A;
-  --parch:   #F2E8D0;
-  --text:    #D8CDB8;
-  --muted:   rgba(216,205,184,0.45);
-  --faint:   rgba(216,205,184,0.18);
-  --glow-r:  rgba(139,26,26,0.5);
-  --glow-g:  rgba(201,147,58,0.4);
-  --success: #2E7D52;
-  --warn:    #B5651D;
-}
+:root{--void:#08080D;--panel:#111118;--lift:#191921;--card:#0D0D12;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--red:#B83232;--red2:#D94040;--gold:#C8A84B;--paper:#EDE8DC;--text:#C0B8A8;--muted:rgba(192,184,168,0.5);--faint:rgba(192,184,168,0.1);--success:#2A6B47;--accent:#4A90D9;--accent2:#5FA3E8;--green:#2ECC71;--green2:#27AE60;}
+*{margin:0;padding:0;box-sizing:border-box;}html{scroll-behavior:smooth;}
+body{font-family:'Outfit',sans-serif;background:var(--void);color:var(--text);min-height:100vh;}
 
-*{ margin:0; padding:0; box-sizing:border-box; }
-html{ scroll-behavior:smooth; }
+/* ── LOGIN ── */
+#login-screen{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;background:var(--void);}
+#login-screen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 70% at 50% 50%,rgba(184,50,50,0.05) 0%,transparent 70%);}
+#login-screen.gone{display:none;}
+.lcard{width:min(420px,92vw);background:var(--panel);border:1px solid var(--border2);border-radius:20px;padding:52px;animation:cIn 0.5s cubic-bezier(0.16,1,0.3,1);position:relative;z-index:1;box-shadow:0 40px 120px rgba(0,0,0,0.6);}
+@keyframes cIn{from{opacity:0;transform:translateY(24px) scale(0.96);}to{opacity:1;transform:translateY(0) scale(1);}}
+.lmark{width:44px;height:44px;background:var(--red);clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);display:flex;align-items:center;justify-content:center;margin-bottom:32px;font-weight:700;color:#fff;font-size:18px;}
+.lt{font-family:'Playfair Display',serif;font-size:28px;font-weight:900;color:var(--paper);margin-bottom:6px;letter-spacing:-0.5px;}
+.ls{font-size:14px;color:var(--muted);margin-bottom:32px;line-height:1.6;}
+.lerr-login{font-size:13px;color:var(--red);margin-bottom:12px;display:none;padding:10px 14px;background:rgba(184,50,50,0.08);border-radius:6px;border:1px solid rgba(184,50,50,0.2);}
+.lerr-login.show{display:block;}
+.fi-label{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.fi-wrap{margin-bottom:14px;}
+.fi{width:100%;background:var(--lift);border:1px solid var(--border);border-radius:9px;color:var(--paper);font-family:'Outfit',sans-serif;font-size:15px;padding:13px 16px;outline:none;transition:all 0.2s;}
+.fi:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(184,50,50,0.08);}
+.fi::placeholder{color:var(--faint);}
+.fi-sel{width:100%;background:var(--lift);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;padding:11px 14px;outline:none;transition:border-color 0.2s;-webkit-appearance:none;}
+.fi-sel:focus{border-color:var(--red);}
+.fi-sel option{background:var(--panel);}
+.btn-login{width:100%;margin-top:8px;background:var(--red);color:#fff;border:none;border-radius:9px;padding:14px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.25s;letter-spacing:0.3px;}
+.btn-login:hover{background:var(--red2);transform:translateY(-1px);box-shadow:0 8px 24px rgba(184,50,50,0.3);}
 
-body{
-  font-family:'Cormorant Garamond', Georgia, serif;
-  background: var(--void);
-  color: var(--text);
-  min-height:100vh;
-  overflow-x:hidden;
-  cursor: default;
-}
+/* ── APP LAYOUT ── */
+#app{display:none;}
+#app.show{display:flex;min-height:100vh;}
+.sidebar{width:236px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+.sb-logo{padding:24px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+.sb-lm{width:34px;height:34px;background:var(--red);clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;}
+.sb-lt{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--paper);}
+.sb-ls{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);margin-top:1px;}
+.sb-nav{flex:1;padding:16px 12px;overflow-y:auto;}
+.sb-sec{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);padding:0 8px;margin:20px 0 6px;}
+.sb-sec:first-child{margin-top:4px;}
+.sb-btn{width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;background:none;border:none;color:var(--muted);font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.2s;text-align:left;}
+.sb-btn:hover,.sb-btn.on{color:var(--paper);background:var(--lift);}
+.sb-btn.on{color:var(--red);}
+.sb-ico{font-size:14px;width:18px;text-align:center;}
+.sb-badge{margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:100px;}
+.sb-foot{padding:16px 20px;border-top:1px solid var(--border);}
+.sb-user{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:1px;}
+.sb-out{font-size:12px;color:var(--red);background:none;border:none;cursor:pointer;margin-top:8px;font-family:'Outfit',sans-serif;opacity:0.7;transition:opacity 0.2s;}
+.sb-out:hover{opacity:1;}
+.content{flex:1;overflow-y:auto;background:var(--void);}
+.tp{display:none;padding:44px;}
+.tp.on{display:block;animation:pIn 0.35s cubic-bezier(0.16,1,0.3,1);}
+@keyframes pIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+.tp-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:36px;flex-wrap:wrap;gap:16px;}
+.tp-title{font-family:'Playfair Display',serif;font-size:34px;font-weight:900;color:var(--paper);letter-spacing:-0.5px;}
+.tp-sub{font-size:14px;color:var(--muted);margin-top:6px;}
 
-/* ── BACKGROUND TEXTURE ── */
-body::before{
-  content:'';
-  position:fixed; inset:0; z-index:0; pointer-events:none;
-  background:
-    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(139,26,26,0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 80% 90%, rgba(201,147,58,0.04) 0%, transparent 50%),
-    radial-gradient(ellipse 100% 100% at 50% 50%, rgba(10,10,15,0) 0%, var(--void) 100%);
-}
+/* ── STATS ── */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:36px;}
+.sc{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:22px 26px;position:relative;overflow:hidden;transition:all 0.2s;}
+.sc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--red),var(--gold));opacity:0;transition:opacity 0.3s;}
+.sc:hover::after{opacity:1;}
+.sc-num{font-family:'Playfair Display',serif;font-size:38px;font-weight:700;color:var(--paper);margin-bottom:6px;line-height:1;}
+.sc-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);}
 
-/* ── LOGIN SCREEN ── */
-#login-screen{
-  position:fixed; inset:0; z-index:1000;
-  display:flex; align-items:center; justify-content:center;
-  background: var(--void);
-  flex-direction:column;
-}
-#login-screen.hidden{
-  animation: loginOut 0.7s cubic-bezier(0.4,0,0.2,1) forwards;
-  pointer-events:none;
-}
-@keyframes loginOut{
-  to{ opacity:0; transform:scale(1.04); filter:blur(8px); }
-}
+/* ── TABLES ── */
+.tbl-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:var(--lift);border-bottom:1px solid var(--border);}
+th{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:13px 18px;text-align:left;font-weight:400;}
+td{padding:15px 18px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.03);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,0.015);}
+.td-name{font-weight:600;color:var(--paper);}
+.td-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px;}
 
-.login-card{
-  width:min(480px, 92vw);
-  background: var(--panel);
-  border:1px solid var(--border2);
-  padding:60px 52px;
-  position:relative;
-  animation: cardIn 0.9s cubic-bezier(0.16,1,0.3,1);
-}
-@keyframes cardIn{
-  from{ opacity:0; transform:translateY(32px) scale(0.97); }
-  to{   opacity:1; transform:translateY(0)    scale(1); }
-}
-.login-card::before{
-  content:'';
-  position:absolute; top:0; left:0; right:0; height:2px;
-  background: linear-gradient(90deg, transparent, var(--ember), var(--gold), var(--ember), transparent);
-}
-.login-card::after{
-  content:'';
-  position:absolute; bottom:0; left:0; right:0; height:1px;
-  background: linear-gradient(90deg, transparent, rgba(139,26,26,0.3), transparent);
-}
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:100px;}
+.b-recv{background:rgba(200,168,75,0.1);border:1px solid rgba(200,168,75,0.2);color:var(--gold);}
+.b-rev{background:rgba(74,144,217,0.1);border:1px solid rgba(74,144,217,0.2);color:var(--accent);}
+.b-hire{background:rgba(42,107,71,0.12);border:1px solid rgba(42,107,71,0.3);color:#4CAF7D;}
+.b-rej{background:rgba(184,50,50,0.1);border:1px solid rgba(184,50,50,0.2);color:var(--red);}
+.b-pend{background:rgba(200,168,75,0.08);border:1px solid rgba(200,168,75,0.18);color:var(--gold);}
+.b-asgn{background:rgba(74,144,217,0.08);border:1px solid rgba(74,144,217,0.18);color:var(--accent);}
+.b-done{background:rgba(42,107,71,0.1);border:1px solid rgba(42,107,71,0.2);color:#4CAF7D;}
+.b-spam{background:rgba(184,50,50,0.08);border:1px solid rgba(184,50,50,0.18);color:var(--red);}
+.b-legit{background:rgba(42,107,71,0.08);border:1px solid rgba(42,107,71,0.18);color:#4CAF7D;}
+.bdot{width:5px;height:5px;border-radius:50%;background:currentColor;}
 
-.login-sigil{
-  width:64px; height:64px; margin:0 auto 32px;
-  border:2px solid var(--ember);
-  display:flex; align-items:center; justify-content:center;
-  font-family:'Cinzel', serif; font-size:26px; font-weight:700;
-  color:var(--ember);
-  clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);
-  background:rgba(139,26,26,0.06);
-  box-shadow:0 0 40px rgba(139,26,26,0.18);
-}
-
-.login-title{
-  font-family:'Cinzel', serif;
-  font-size:13px; font-weight:600;
-  letter-spacing:6px; text-transform:uppercase;
-  color:var(--muted); text-align:center;
-  margin-bottom:8px;
-}
-.login-heading{
-  font-family:'Cormorant Garamond', serif;
-  font-size:32px; font-weight:300;
-  color:var(--parch); text-align:center;
-  letter-spacing:1px; margin-bottom:40px;
-  font-style:italic;
-}
-
-.login-field{ margin-bottom:20px; }
-.login-field label{
-  display:block;
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:3px;
-  text-transform:uppercase; color:var(--muted);
-  margin-bottom:10px;
-}
-.login-field input{
-  width:100%;
-  background:rgba(255,255,255,0.03);
-  border:1px solid var(--border);
-  border-bottom:1px solid rgba(255,255,255,0.14);
-  color:var(--parch);
-  font-family:'Cormorant Garamond', serif;
-  font-size:18px; font-weight:400;
-  padding:14px 18px;
-  outline:none;
-  transition:all 0.25s;
-  -webkit-appearance:none;
-}
-.login-field input:focus{
-  border-color:var(--ember);
-  border-bottom-color:var(--ember);
-  background:rgba(139,26,26,0.05);
-  box-shadow:0 4px 24px rgba(139,26,26,0.08);
-}
-.login-field input::placeholder{ color:var(--faint); }
-
-.login-error{
-  font-family:'JetBrains Mono', monospace;
-  font-size:10px; letter-spacing:1px;
-  color:var(--fire); margin-bottom:16px;
-  display:none; text-align:center;
-}
-.login-error.show{ display:block; animation:shake 0.35s ease; }
-@keyframes shake{
-  0%,100%{ transform:translateX(0); }
-  25%{ transform:translateX(-6px); }
-  75%{ transform:translateX(6px); }
-}
-
-.login-btn{
-  width:100%; padding:16px;
-  font-family:'Cinzel', serif;
-  font-size:11px; font-weight:600;
-  letter-spacing:4px; text-transform:uppercase;
-  color:#fff; background:var(--ember);
-  border:none; cursor:pointer;
-  clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%);
-  transition:all 0.25s; margin-top:8px;
-}
-.login-btn:hover{
-  background:var(--fire);
-  box-shadow:0 0 44px var(--glow-r);
-  transform:translateY(-1px);
-}
-
-.login-hint{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:2px;
-  color:var(--faint); text-align:center;
-  margin-top:24px;
-}
-
-/* ── MAIN APP (hidden until login) ── */
-#main-app{
-  display:none; position:relative; z-index:1;
-  min-height:100vh;
-}
-#main-app.visible{ display:block; }
-
-/* ── TOP BAR ── */
-.topbar{
-  position:sticky; top:0; z-index:100;
-  display:flex; align-items:center; justify-content:space-between;
-  padding:18px 56px;
-  background:rgba(6,6,8,0.92);
-  backdrop-filter:blur(24px);
-  border-bottom:1px solid var(--border);
-}
-.topbar::after{
-  content:''; position:absolute; bottom:0; left:0; right:0; height:1px;
-  background:linear-gradient(90deg, transparent, var(--crimson), var(--gold), var(--crimson), transparent);
-  opacity:0.5;
-}
-.tb-brand{
-  display:flex; align-items:center; gap:16px;
-  font-family:'Cinzel', serif;
-}
-.tb-sigil{
-  width:40px; height:40px;
-  border:1px solid var(--ember);
-  display:flex; align-items:center; justify-content:center;
-  font-size:15px; color:var(--ember); font-weight:700;
-  clip-path:polygon(7px 0%,100% 0%,calc(100% - 7px) 100%,0% 100%);
-  background:rgba(139,26,26,0.07);
-}
-.tb-name{
-  font-size:14px; font-weight:600;
-  letter-spacing:4px; color:var(--parch);
-}
-.tb-sub{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:2px;
-  color:var(--muted);
-}
-.tb-right{ display:flex; align-items:center; gap:20px; }
-.tb-status{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:2px;
-  color:var(--success); display:flex; align-items:center; gap:6px;
-}
-.tb-dot{
-  width:6px; height:6px; border-radius:50%;
-  background:var(--success);
-  animation:pulse-dot 2s infinite;
-}
-@keyframes pulse-dot{
-  0%,100%{ opacity:1; box-shadow:0 0 0 0 rgba(46,125,82,0.4); }
-  50%{ opacity:0.8; box-shadow:0 0 0 6px rgba(46,125,82,0); }
-}
-.logout-btn{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:2px;
-  text-transform:uppercase; color:var(--muted);
-  background:none; border:1px solid var(--border);
-  padding:8px 18px; cursor:pointer; transition:all 0.2s;
-}
-.logout-btn:hover{ border-color:var(--ember); color:var(--parch); }
-
-/* ── TABS NAV ── */
-.tabs-nav{
-  display:flex; gap:0;
-  padding:0 56px;
-  border-bottom:1px solid var(--border);
-  background:var(--deep);
-  overflow-x:auto;
-}
-.tab-btn{
-  font-family:'Cinzel', serif;
-  font-size:10px; font-weight:600;
-  letter-spacing:3px; text-transform:uppercase;
-  color:var(--muted); background:none; border:none;
-  padding:18px 28px; cursor:pointer;
-  position:relative; white-space:nowrap;
-  transition:color 0.2s;
-}
-.tab-btn::after{
-  content:''; position:absolute;
-  bottom:0; left:0; right:0; height:2px;
-  background:linear-gradient(90deg, var(--ember), var(--gold));
-  transform:scaleX(0); transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);
-}
-.tab-btn.active{ color:var(--parch); }
-.tab-btn.active::after{ transform:scaleX(1); }
-.tab-btn:hover{ color:var(--parch); }
-
-/* ── PANELS ── */
-.panel{ display:none; padding:64px 56px 80px; }
-.panel.active{
-  display:block;
-  animation:panelIn 0.5s cubic-bezier(0.16,1,0.3,1);
-}
-@keyframes panelIn{
-  from{ opacity:0; transform:translateY(20px); }
-  to{   opacity:1; transform:translateY(0); }
-}
-
-/* ── SCROLL REVEAL ── */
-.reveal{
-  opacity:0;
-  transform:translateY(36px);
-  transition: opacity 0.75s cubic-bezier(0.16,1,0.3,1),
-              transform 0.75s cubic-bezier(0.16,1,0.3,1);
-}
-.reveal.visible{
-  opacity:1;
-  transform:translateY(0);
-}
-.reveal-left{
-  opacity:0; transform:translateX(-40px);
-  transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1),
-              transform 0.7s cubic-bezier(0.16,1,0.3,1);
-}
-.reveal-left.visible{ opacity:1; transform:translateX(0); }
-.reveal-right{
-  opacity:0; transform:translateX(40px);
-  transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1),
-              transform 0.7s cubic-bezier(0.16,1,0.3,1);
-}
-.reveal-right.visible{ opacity:1; transform:translateX(0); }
-.reveal-scale{
-  opacity:0; transform:scale(0.94);
-  transition: opacity 0.65s ease,
-              transform 0.65s cubic-bezier(0.34,1.56,0.64,1);
-}
-.reveal-scale.visible{ opacity:1; transform:scale(1); }
-
-/* Stagger delays */
-.delay-1{ transition-delay:0.08s; }
-.delay-2{ transition-delay:0.16s; }
-.delay-3{ transition-delay:0.24s; }
-.delay-4{ transition-delay:0.32s; }
-.delay-5{ transition-delay:0.40s; }
-
-/* ── TYPOGRAPHY ── */
-.section-eyebrow{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:5px;
-  text-transform:uppercase; color:var(--ember);
-  display:flex; align-items:center; gap:14px;
-  margin-bottom:16px;
-}
-.section-eyebrow::before{ content:''; width:32px; height:1px; background:var(--ember); }
-
-.section-title{
-  font-family:'Cinzel', serif;
-  font-size:clamp(26px, 3.5vw, 42px);
-  font-weight:700; color:var(--parch);
-  letter-spacing:-0.5px; line-height:1.1;
-  margin-bottom:8px;
-}
-.section-title em{
-  font-style:italic; font-weight:400;
-  color:transparent;
-  -webkit-text-stroke:1px var(--ember);
-}
-.section-sub{
-  font-family:'Cormorant Garamond', serif;
-  font-size:17px; font-weight:300;
-  color:var(--muted); line-height:1.8;
-  letter-spacing:0.3px; margin-bottom:48px;
-  max-width:560px;
-}
-
-/* ── STAT CARDS ── */
-.stats-row{
-  display:grid;
-  grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
-  gap:2px; margin-bottom:56px;
-}
-.stat-card{
-  background:var(--panel);
-  border:1px solid var(--border);
-  padding:28px 32px;
-  position:relative; overflow:hidden;
-  transition:all 0.3s;
-}
-.stat-card::before{
-  content:''; position:absolute;
-  left:0; top:0; bottom:0; width:2px;
-  background:linear-gradient(to bottom, var(--ember), var(--gold));
-  transform:scaleY(0); transform-origin:top;
-  transition:transform 0.4s cubic-bezier(0.4,0,0.2,1);
-}
-.stat-card:hover::before{ transform:scaleY(1); }
-.stat-card:hover{ background:var(--lift); border-color:rgba(255,255,255,0.1); }
-.stat-num{
-  font-family:'Cinzel', serif;
-  font-size:38px; font-weight:700;
-  color:var(--parch); line-height:1;
-  margin-bottom:6px;
-}
-.stat-num.gold{ color:var(--gilt); }
-.stat-num.ember{ color:var(--ember); }
-.stat-num.green{ color:#4CAF7D; }
-.stat-lbl{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:2.5px;
-  text-transform:uppercase; color:var(--muted);
-}
-
-/* ── TABLE ── */
-.data-table{
-  width:100%; border-collapse:collapse;
-  border:1px solid var(--border);
-}
-.data-table thead tr{
-  background:rgba(255,255,255,0.02);
-  border-bottom:1px solid rgba(139,26,26,0.25);
-}
-.data-table th{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:2.5px;
-  text-transform:uppercase; color:var(--muted);
-  padding:14px 22px; text-align:left;
-  font-weight:400;
-}
-.data-table td{
-  padding:20px 22px;
-  font-family:'Cormorant Garamond', serif;
-  font-size:15px; font-weight:400;
-  border-bottom:1px solid rgba(255,255,255,0.025);
-  vertical-align:middle;
-  color:var(--text);
-}
-.data-table tr:hover td{ background:rgba(255,255,255,0.018); }
-
-.name-cell .primary{
-  font-family:'Cormorant Garamond', serif;
-  font-size:17px; font-weight:600;
-  color:var(--parch); margin-bottom:3px;
-}
-.name-cell .secondary{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:1px;
-  color:var(--muted);
-}
-.role-cell .role-name{
-  font-family:'Cinzel', serif;
-  font-size:12px; font-weight:600;
-  letter-spacing:0.5px; color:var(--parch);
-  margin-bottom:3px;
-}
-.role-cell .dept-name{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:1px; color:var(--muted);
-}
-.date-cell{
-  font-family:'JetBrains Mono', monospace;
-  font-size:10px; letter-spacing:0.5px; color:var(--muted);
-}
-
-/* ── BADGE ── */
-.badge{
-  display:inline-flex; align-items:center; gap:6px;
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:2px;
-  text-transform:uppercase; padding:6px 14px;
-  clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
-}
-.badge-recv{ background:rgba(181,101,29,0.1); border:1px solid rgba(181,101,29,0.3); color:var(--warn); }
-.badge-rev { background:rgba(201,147,58,0.1); border:1px solid rgba(201,147,58,0.3); color:var(--gilt); }
-.badge-hire{ background:rgba(46,125,82,0.1);  border:1px solid rgba(46,125,82,0.3);  color:#4CAF7D; }
-.badge-rej { background:rgba(139,26,26,0.08); border:1px solid rgba(139,26,26,0.3);  color:var(--fire); }
-.b-dot{
-  width:4px; height:4px; border-radius:50%;
-  background:currentColor;
-  animation:bdBlink 1.6s infinite;
-}
-@keyframes bdBlink{ 0%,100%{opacity:1;} 50%{opacity:0.2;} }
-
-/* ── SELECT ── */
-.status-select{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:1px;
-  background:rgba(255,255,255,0.04);
-  border:1px solid var(--border);
-  color:var(--text); padding:8px 12px;
-  cursor:pointer; outline:none;
-  transition:all 0.2s;
-}
-.status-select:focus{ border-color:var(--ember); box-shadow:0 0 18px rgba(139,26,26,0.15); }
-.status-select option{ background:var(--deep); }
-
-/* ── CV LINK ── */
-.cv-link{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:1px;
-  color:var(--gilt); text-decoration:none;
-  border-bottom:1px solid rgba(201,147,58,0.3);
-  transition:all 0.2s; padding-bottom:1px;
-}
-.cv-link:hover{ color:var(--gold); border-bottom-color:var(--gold); }
-
-/* ── JOB MANAGEMENT ── */
-.mgmt-header{
-  display:flex; align-items:center;
-  justify-content:space-between;
-  margin-bottom:28px; flex-wrap:wrap; gap:16px;
-}
-.mgmt-title{
-  font-family:'Cinzel', serif;
-  font-size:14px; font-weight:700;
-  letter-spacing:2px; color:var(--parch);
-}
-
-.btn-primary{
-  font-family:'Cinzel', serif;
-  font-size:9px; font-weight:700;
-  letter-spacing:3px; text-transform:uppercase;
-  color:#fff; background:var(--ember); border:none;
-  padding:13px 28px;
-  clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);
-  cursor:pointer; transition:all 0.25s;
-}
-.btn-primary:hover{
-  background:var(--fire);
-  box-shadow:0 0 36px var(--glow-r);
-  transform:translateY(-1px);
-}
-.btn-ghost{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:2px;
-  text-transform:uppercase;
-  color:var(--muted); background:transparent;
-  border:1px solid var(--border);
-  padding:12px 22px; cursor:pointer; transition:all 0.2s;
-}
-.btn-ghost:hover{ border-color:rgba(255,255,255,0.2); color:var(--parch); }
-.btn-danger{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:1px;
-  color:var(--ember); background:rgba(139,26,26,0.1);
-  border:1px solid rgba(139,26,26,0.3);
-  padding:8px 16px; cursor:pointer; transition:all 0.2s;
-}
-.btn-danger:hover{ background:var(--ember); color:#fff; }
+/* ── CONTROLS ── */
+.ctrl-sel{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--lift);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;outline:none;cursor:pointer;transition:border-color 0.2s;-webkit-appearance:none;}
+.ctrl-sel:focus{border-color:var(--red);}
+.ctrl-sel option{background:var(--panel);}
+.ctrl-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.btn-act{font-size:11px;font-weight:600;background:var(--red);color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;transition:all 0.2s;}
+.btn-act:hover{background:var(--red2);transform:translateY(-1px);}
+.btn-danger{font-size:11px;font-weight:600;background:rgba(184,50,50,0.1);color:var(--red);border:1px solid rgba(184,50,50,0.2);padding:7px 12px;border-radius:6px;cursor:pointer;transition:all 0.2s;}
+.btn-danger:hover{background:var(--red);color:#fff;}
+.btn-pay{font-size:11px;font-weight:700;background:rgba(42,107,71,0.1);color:#4CAF7D;border:1px solid rgba(42,107,71,0.25);padding:8px 14px;border-radius:6px;cursor:pointer;transition:all 0.2s;}
+.btn-pay:hover{background:var(--green2);color:#fff;}
+.cv-lnk{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);text-decoration:none;border-bottom:1px solid rgba(200,168,75,0.3);transition:border-color 0.2s;}
+.cv-lnk:hover{border-color:var(--gold);}
 
 /* ── JOB FORM ── */
-.job-form{
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-left:2px solid var(--ember);
-  padding:36px 40px;
-  margin-bottom:24px;
-  display:none;
-}
-.job-form.open{
-  display:block;
-  animation:panelIn 0.35s ease;
-}
-.jf-heading{
-  font-family:'Cinzel', serif;
-  font-size:13px; font-weight:700;
-  letter-spacing:3px; text-transform:uppercase;
-  color:var(--ember); margin-bottom:28px;
-}
-.f-grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:18px; }
-.f-group{ display:flex; flex-direction:column; gap:8px; }
-.f-group label{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:2.5px;
-  text-transform:uppercase; color:var(--muted);
-}
-.f-group input,
-.f-group select,
-.f-group textarea{
-  background:rgba(255,255,255,0.03);
-  border:1px solid var(--border);
-  border-bottom:1px solid rgba(255,255,255,0.14);
-  color:var(--parch);
-  font-family:'Cormorant Garamond', serif;
-  font-size:16px; font-weight:400;
-  padding:12px 16px; outline:none;
-  transition:all 0.25s; -webkit-appearance:none;
-}
-.f-group input:focus,
-.f-group select:focus,
-.f-group textarea:focus{
-  border-color:var(--ember);
-  border-bottom-color:var(--ember);
-  background:rgba(139,26,26,0.04);
-}
-.f-group input::placeholder,
-.f-group textarea::placeholder{ color:var(--faint); }
-.f-group select option{ background:var(--deep); }
-.jf-actions{ display:flex; gap:12px; margin-top:24px; }
+.jform{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:12px;padding:28px;margin-bottom:20px;display:none;}
+.jform.open{display:block;animation:pIn 0.3s ease;}
+.jftitle{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--red);margin-bottom:20px;}
+.jfrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.jfg{margin-bottom:12px;}
+.jfg label{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:7px;}
+.jf-actions{display:flex;gap:10px;margin-top:18px;}
 
-/* ── JOB ROWS ── */
-.job-row{
-  display:flex; align-items:center;
-  justify-content:space-between;
-  padding:22px 28px;
-  background:var(--panel);
-  border:1px solid var(--border);
-  margin-bottom:2px;
-  flex-wrap:wrap; gap:14px;
-  transition:all 0.25s;
-}
-.job-row:hover{
-  background:var(--lift);
-  border-color:rgba(255,255,255,0.09);
-}
-.jr-info{ flex:1; min-width:200px; }
-.jr-title{
-  font-family:'Cinzel', serif;
-  font-size:14px; font-weight:700;
-  letter-spacing:0.3px; color:var(--parch);
-  margin-bottom:5px;
-}
-.jr-meta{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:1.5px;
-  color:var(--muted);
-}
-.jr-salary{
-  font-family:'Cinzel', serif;
-  font-size:14px; font-weight:600;
-  color:var(--gilt); letter-spacing:0.5px;
-  margin-right:28px;
-}
-.jr-actions{ display:flex; gap:8px; }
+/* ── PAY MODAL ── */
+.mveil{display:none;position:fixed;inset:0;z-index:400;background:rgba(8,8,13,0.9);backdrop-filter:blur(20px);align-items:center;justify-content:center;}
+.mveil.show{display:flex;}
+.mbox{background:var(--panel);border:1px solid var(--border2);border-radius:18px;padding:44px;width:min(460px,92vw);animation:cIn 0.35s ease;box-shadow:0 40px 120px rgba(0,0,0,0.7);}
+.mb-title{font-family:'Playfair Display',serif;font-size:26px;font-weight:900;color:var(--paper);margin-bottom:6px;letter-spacing:-0.5px;}
+.mb-sub{font-size:14px;color:var(--muted);margin-bottom:28px;line-height:1.65;}
+.pay-info{background:var(--lift);border-radius:10px;padding:18px;margin-bottom:22px;border:1px solid var(--border);}
+.pi-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px;color:var(--text);}
+.pi-row:last-child{margin-bottom:0;border-top:1px solid var(--border);padding-top:10px;font-weight:600;color:var(--paper);}
+.pi-lbl{color:var(--muted);}
+.mb-err{font-size:13px;color:var(--red);margin-bottom:12px;display:none;padding:10px 14px;background:rgba(184,50,50,0.08);border-radius:6px;border:1px solid rgba(184,50,50,0.2);}
+.mb-err.show{display:block;}
+.mb-actions{display:flex;gap:10px;margin-top:8px;}
+.btn-confirm{flex:1;background:var(--green2);color:#fff;border:none;border-radius:9px;padding:13px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s;}
+.btn-confirm:hover{background:var(--green);transform:translateY(-1px);}
+.btn-cancel{background:var(--lift);color:var(--text);border:1px solid var(--border);border-radius:9px;padding:12px 20px;font-family:'Outfit',sans-serif;font-size:14px;cursor:pointer;transition:all 0.2s;}
+.btn-cancel:hover{border-color:var(--border2);color:var(--paper);}
 
-/* ── FORM CONFIG ── */
-.config-row{
-  display:flex; align-items:center; gap:20px;
-  padding:18px 28px;
-  background:var(--panel);
-  border:1px solid var(--border);
-  margin-bottom:2px;
-  flex-wrap:wrap;
-  transition:background 0.2s;
-}
-.config-row:hover{ background:var(--lift); }
-.toggle{
-  position:relative; width:44px; height:24px;
-  background:rgba(255,255,255,0.06);
-  border:1px solid var(--border);
-  cursor:pointer; transition:all 0.3s; flex-shrink:0;
-  border-radius:0;
-}
-.toggle.on{
-  background:rgba(139,26,26,0.35);
-  border-color:var(--ember);
-}
-.toggle::after{
-  content:''; position:absolute;
-  top:3px; left:3px;
-  width:16px; height:16px;
-  background:var(--muted); transition:all 0.3s;
-}
-.toggle.on::after{ left:23px; background:var(--ember); }
-.toggle-label{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:1px;
-  color:var(--muted); width:28px;
-}
-.toggle.on + .toggle-label{ color:var(--ember); }
-.config-field-name{ flex:1; min-width:160px; }
-.config-field-name input{
-  background:transparent; border:none;
-  border-bottom:1px solid transparent;
-  color:var(--parch);
-  font-family:'Cormorant Garamond', serif;
-  font-size:16px; font-weight:400;
-  padding:4px 0; width:100%;
-  transition:border-color 0.2s; outline:none;
-}
-.config-field-name input:focus{
-  border-bottom-color:var(--ember);
-}
-.config-required{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:1px;
-  color:var(--muted);
-}
-.config-key{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:1px;
-  color:var(--faint); margin-left:auto;
-}
+/* ── WORKER FORM ── */
+.wform{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:28px;max-width:500px;}
+.wf-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--paper);margin-bottom:6px;letter-spacing:-0.3px;}
+.wf-sub{font-size:13px;color:var(--muted);margin-bottom:22px;}
+.werr{font-size:13px;color:var(--red);margin-bottom:12px;display:none;padding:10px 14px;background:rgba(184,50,50,0.08);border-radius:6px;border:1px solid rgba(184,50,50,0.2);}
+.werr.show{display:block;}
+.acc-lkp{background:var(--lift);border:1px solid var(--border);border-radius:8px;padding:13px 16px;margin-top:8px;display:none;}
+.acc-lkp.show{display:block;animation:fadeIn 0.25s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
+.al-name{font-size:14px;font-weight:600;color:var(--paper);margin-bottom:3px;}
+.al-sub{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+.al-ok{font-size:12px;color:#4CAF7D;margin-top:5px;}
+.al-err{font-size:12px;color:var(--red);}
 
-/* ── EMPTY STATE ── */
-.empty{
-  text-align:center; padding:80px 40px;
-}
-.empty-mark{
-  font-family:'Cinzel', serif;
-  font-size:60px; font-weight:900;
-  color:rgba(255,255,255,0.025);
-  margin-bottom:20px; letter-spacing:-2px;
-}
-.empty-title{
-  font-family:'Cinzel', serif;
-  font-size:16px; font-weight:700;
-  letter-spacing:2px; color:var(--muted);
-  margin-bottom:10px;
-}
-.empty-sub{
-  font-family:'Cormorant Garamond', serif;
-  font-size:15px; color:var(--faint);
-  line-height:1.7;
-}
+/* ── CONFIG ── */
+.cfg-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:32px;max-width:560px;}
+.cfg-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--paper);margin-bottom:6px;}
+.cfg-sub{font-size:14px;color:var(--muted);margin-bottom:28px;line-height:1.65;}
 
-/* ── DIVIDER ── */
-.ornament{
-  display:flex; align-items:center;
-  gap:16px; margin:40px 0;
-  color:var(--faint);
-  font-family:'Cinzel', serif;
-  font-size:11px; letter-spacing:3px;
-}
-.ornament::before,
-.ornament::after{
-  content:''; flex:1; height:1px;
-  background:linear-gradient(90deg, transparent, var(--border2), transparent);
-}
-
-/* ── TOAST ── */
-.toast{
-  position:fixed; bottom:36px; right:36px; z-index:999;
-  font-family:'JetBrains Mono', monospace;
-  font-size:10px; letter-spacing:1.5px;
-  padding:14px 26px;
-  background:var(--panel);
-  border:1px solid var(--ember);
-  color:var(--parch);
-  clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
-  display:none;
-  box-shadow:0 8px 40px rgba(0,0,0,0.5);
-}
-.toast.show{ display:block; animation:toastIn 0.35s ease; }
-@keyframes toastIn{ from{opacity:0;transform:translateY(10px);} to{opacity:1;transform:translateY(0);} }
-
-/* ── LOADER ── */
-.loader{
-  display:none; position:fixed; inset:0;
-  background:rgba(6,6,8,0.88);
-  backdrop-filter:blur(6px);
-  z-index:800; align-items:center;
-  justify-content:center; flex-direction:column; gap:20px;
-}
-.loader.show{ display:flex; }
-.ld-text{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px; letter-spacing:5px;
-  text-transform:uppercase; color:var(--ember);
-  animation:ldBlink 0.9s infinite;
-}
-@keyframes ldBlink{ 0%,100%{opacity:1;} 50%{opacity:0.15;} }
-.ld-bar{ width:180px; height:1px; background:var(--border); }
-.ld-fill{
-  height:100%;
-  background:linear-gradient(90deg, var(--ember), var(--gold));
-  animation:ldFill 1.5s ease-in-out infinite alternate;
-}
-@keyframes ldFill{ from{width:10%;} to{width:92%;} }
-
-/* RESPONSIVE */
-@media(max-width:768px){
-  .topbar{ padding:14px 20px; }
-  .tabs-nav{ padding:0 12px; }
-  .panel{ padding:40px 20px 60px; }
-  .f-grid-2{ grid-template-columns:1fr; }
-  .stats-row{ grid-template-columns:1fr 1fr; }
-  .job-row{ flex-direction:column; align-items:flex-start; }
-  .jr-salary{ margin-right:0; }
-}
+/* ── EMPTY / LOADER / TOAST ── */
+.erow td{text-align:center;padding:44px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;}
+.loader{display:none;position:fixed;inset:0;z-index:500;background:rgba(8,8,13,0.85);backdrop-filter:blur(12px);align-items:center;justify-content:center;}
+.loader.show{display:flex;}
+.ldring{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--red);border-radius:50%;animation:spin 0.75s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.toast{position:fixed;bottom:28px;right:28px;z-index:600;background:var(--lift);border:1px solid var(--border2);color:var(--paper);font-size:13px;padding:14px 20px;border-radius:10px;display:none;max-width:320px;box-shadow:0 8px 32px rgba(0,0,0,0.4);}
+.toast.show{display:block;animation:tIn 0.3s cubic-bezier(0.16,1,0.3,1);}
+@keyframes tIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 </style>
 </head>
 <body>
+<div class="loader" id="loader"><div class="ldring"></div></div>
+<div class="toast" id="toast"></div>
 
-<!-- ═══ LOGIN SCREEN ═══ -->
-<div id="login-screen">
-  <div class="login-card">
-    <div class="login-sigil">B</div>
-    <div class="login-title">BBD Software</div>
-    <div class="login-heading">Admin Portal</div>
-
-    <div class="login-field">
-      <label>Admin Username</label>
-      <input type="text" id="login-user" placeholder="admin" autocomplete="username" onkeydown="if(event.key==='Enter') attemptLogin()"/>
+<!-- PAY MODAL -->
+<div class="mveil" id="pay-modal">
+  <div class="mbox">
+    <div class="mb-title">Pay Weekly Salary</div>
+    <div class="mb-sub">Amount is added to the worker's BBD balance. They can withdraw to Atlantas anytime.</div>
+    <div class="pay-info" id="pay-info"></div>
+    <div class="mb-err" id="pay-err"></div>
+    <div class="jfg"><label class="fi-label">Salary Amount (USD)</label><input class="fi" type="number" id="pay-amount" placeholder="e.g. 1200" min="1"/></div>
+    <div class="jfg"><label class="fi-label">Payment Label</label><input class="fi" type="text" id="pay-label" placeholder="e.g. Week of 30 June 2025"/></div>
+    <div class="mb-actions">
+      <button class="btn-cancel" onclick="closePay()">Cancel</button>
+      <button class="btn-confirm" onclick="confirmPay()">Confirm Payment →</button>
     </div>
-    <div class="login-field">
-      <label>Password</label>
-      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') attemptLogin()"/>
-    </div>
-    <div class="login-error" id="login-error">Invalid credentials — access denied</div>
-    <button class="login-btn" onclick="attemptLogin()">Authenticate →</button>
-    <div class="login-hint">Authorized personnel only</div>
   </div>
 </div>
 
-<!-- ═══ MAIN APP ═══ -->
-<div id="main-app">
-
-  <div class="loader" id="loader">
-    <div class="ld-text">Processing</div>
-    <div class="ld-bar"><div class="ld-fill"></div></div>
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="lcard">
+    <div class="lmark">B</div>
+    <div class="lt">BBD Admin Portal</div>
+    <div class="ls">Restricted access — authorised personnel only.</div>
+    <div class="lerr-login" id="lerr"></div>
+    <div class="fi-wrap"><label class="fi-label">Username</label><input class="fi" type="text" id="l-user" placeholder="admin" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+    <div class="fi-wrap"><label class="fi-label">Password</label><input class="fi" type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+    <button class="btn-login" onclick="doLogin()">Sign In →</button>
   </div>
+</div>
 
-  <div class="toast" id="toast"></div>
-
-  <!-- TOP BAR -->
-  <div class="topbar">
-    <div class="tb-brand">
-      <div class="tb-sigil">B</div>
-      <div>
-        <div class="tb-name">BBD SOFTWARE</div>
-        <div class="tb-sub">ADMIN PORTAL — RESTRICTED ACCESS</div>
-      </div>
+<!-- APP -->
+<div id="app">
+  <div class="sidebar">
+    <div class="sb-logo"><div class="sb-lm">B</div><div><div class="sb-lt">BBD Admin</div><div class="sb-ls">Management Portal</div></div></div>
+    <div class="sb-nav">
+      <div class="sb-sec">Overview</div>
+      <button class="sb-btn on" onclick="showTab('overview',this)"><span class="sb-ico">📊</span>Dashboard</button>
+      <div class="sb-sec">Careers</div>
+      <button class="sb-btn" onclick="showTab('applicants',this)"><span class="sb-ico">👤</span>Applicants <span class="sb-badge" id="b-apps">0</span></button>
+      <button class="sb-btn" onclick="showTab('jobs',this)"><span class="sb-ico">💼</span>Job Listings</button>
+      <div class="sb-sec">Client Services</div>
+      <button class="sb-btn" onclick="showTab('requests',this)"><span class="sb-ico">📋</span>Service Requests <span class="sb-badge" id="b-reqs">0</span></button>
+      <button class="sb-btn" onclick="showTab('workers',this)"><span class="sb-ico">🔧</span>Workers</button>
+      <button class="sb-btn" onclick="showTab('salary',this)"><span class="sb-ico">💳</span>Pay Salary</button>
+      <div class="sb-sec">Settings</div>
+      <button class="sb-btn" onclick="showTab('settings',this)"><span class="sb-ico">⚙️</span>Settings</button>
     </div>
-    <div class="tb-right">
-      <div class="tb-status">
-        <div class="tb-dot"></div>
-        FIREBASE LIVE
-      </div>
-      <button class="logout-btn" onclick="logout()">Sign Out</button>
-    </div>
+    <div class="sb-foot"><div class="sb-user" id="sb-user">admin</div><button class="sb-out" onclick="logout()">Sign Out</button></div>
   </div>
 
-  <!-- TABS -->
-  <div class="tabs-nav">
-    <button class="tab-btn active" onclick="switchTab('overview',this)">Overview</button>
-    <button class="tab-btn" onclick="switchTab('applicants',this)">Applicants</button>
-    <button class="tab-btn" onclick="switchTab('jobs',this)">Job Listings</button>
-    <button class="tab-btn" onclick="switchTab('formconfig',this)">Form Config</button>
-  </div>
-
-  <!-- ═══ OVERVIEW PANEL ═══ -->
-  <div class="panel active" id="panel-overview">
-    <div class="section-eyebrow reveal">Dashboard</div>
-    <h1 class="section-title reveal delay-1">Command <em>Centre</em></h1>
-    <p class="section-sub reveal delay-2">Real-time overview of all recruitment activity across BBD Software.</p>
-
-    <div class="stats-row" id="stats-row">
-      <div class="stat-card reveal-scale delay-1">
-        <div class="stat-num" id="stat-total">—</div>
-        <div class="stat-lbl">Total Applications</div>
-      </div>
-      <div class="stat-card reveal-scale delay-2">
-        <div class="stat-num ember" id="stat-review">—</div>
-        <div class="stat-lbl">Under Review</div>
-      </div>
-      <div class="stat-card reveal-scale delay-3">
-        <div class="stat-num green" id="stat-hired">—</div>
-        <div class="stat-lbl">Hired</div>
-      </div>
-      <div class="stat-card reveal-scale delay-4">
-        <div class="stat-num gold" id="stat-jobs">—</div>
-        <div class="stat-lbl">Open Roles</div>
+  <div class="content">
+    <!-- OVERVIEW -->
+    <div class="tp on" id="tab-overview">
+      <div class="tp-head"><div><div class="tp-title">Dashboard</div><div class="tp-sub">Overview of all BBD operations.</div></div></div>
+      <div class="stats-row" id="ov-stats"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px">Recent Applications</div><div class="tbl-wrap"><table><thead><tr><th>Applicant</th><th>Role</th><th>Status</th></tr></thead><tbody id="ov-apps"></tbody></table></div></div>
+        <div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px">Recent Service Requests</div><div class="tbl-wrap"><table><thead><tr><th>Client</th><th>Service</th><th>Status</th></tr></thead><tbody id="ov-reqs"></tbody></table></div></div>
       </div>
     </div>
 
-    <div class="ornament reveal">Recent Activity</div>
-
-    <div class="reveal delay-1">
-      <table class="data-table" id="overview-table">
-        <thead>
-          <tr>
-            <th>Applicant</th>
-            <th>Role</th>
-            <th>Date</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="overview-tbody"></tbody>
-      </table>
+    <!-- APPLICANTS -->
+    <div class="tp" id="tab-applicants">
+      <div class="tp-head"><div><div class="tp-title">Applicants</div><div class="tp-sub">All job applications from the careers portal.</div></div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Applicant</th><th>Role / Dept</th><th>Applied</th><th>CV</th><th>Status</th><th>Update</th></tr></thead><tbody id="apps-tbody"></tbody></table></div>
     </div>
-  </div>
 
-  <!-- ═══ APPLICANTS PANEL ═══ -->
-  <div class="panel" id="panel-applicants">
-    <div class="section-eyebrow reveal">Recruitment</div>
-    <h1 class="section-title reveal delay-1">All <em>Applicants</em></h1>
-    <p class="section-sub reveal delay-2">Review every submission and update applicant status in real time. Changes sync globally instantly.</p>
-
-    <div class="reveal delay-2">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Applicant</th>
-            <th>Role</th>
-            <th>Applied</th>
-            <th>CV</th>
-            <th>Status</th>
-            <th>Update</th>
-          </tr>
-        </thead>
-        <tbody id="applicants-tbody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ═══ JOBS PANEL ═══ -->
-  <div class="panel" id="panel-jobs">
-    <div class="section-eyebrow reveal">Listings</div>
-    <h1 class="section-title reveal delay-1">Job <em>Management</em></h1>
-    <p class="section-sub reveal delay-2">Post new roles, edit existing listings, and remove closed positions. All changes appear live on the careers portal.</p>
-
-    <div class="reveal delay-2">
-      <div class="mgmt-header">
-        <div class="mgmt-title">ACTIVE LISTINGS</div>
-        <button class="btn-primary" onclick="toggleJobForm()">+ Post New Job</button>
+    <!-- JOBS -->
+    <div class="tp" id="tab-jobs">
+      <div class="tp-head"><div><div class="tp-title">Job Listings</div><div class="tp-sub">Roles published on the careers portal.</div></div><button class="btn-act" onclick="toggleJForm()">+ Post New Job</button></div>
+      <div class="jform" id="jform">
+        <div class="jftitle" id="jftitle">Post New Job</div>
+        <input type="hidden" id="jf-eid"/>
+        <div class="jfrow"><div class="jfg"><label class="fi-label" style="margin-bottom:7px">Job Title *</label><input class="fi" type="text" id="jf-title" placeholder="e.g. Senior Engineer"/></div><div class="jfg"><label class="fi-label" style="margin-bottom:7px">Department *</label><input class="fi" type="text" id="jf-dept" placeholder="e.g. Engineering"/></div></div>
+        <div class="jfrow"><div class="jfg"><label class="fi-label" style="margin-bottom:7px">Salary Range</label><input class="fi" type="text" id="jf-sal" placeholder="e.g. $5,000–$7,500/mo"/></div><div class="jfg"><label class="fi-label" style="margin-bottom:7px">Work Type</label><select class="fi-sel" id="jf-wtype"><option>Remote</option><option>Hybrid</option><option>On-site</option></select></div></div>
+        <div class="jfrow"><div class="jfg"><label class="fi-label" style="margin-bottom:7px">Employment Type</label><select class="fi-sel" id="jf-etype"><option>Full-time</option><option>Part-time</option><option>Contract</option></select></div><div class="jfg"><label class="fi-label" style="margin-bottom:7px">Skills Tags</label><input class="fi" type="text" id="jf-tags" placeholder="React · Node.js · AWS"/></div></div>
+        <div class="jf-actions"><button class="btn-act" onclick="saveJob()">Save Job</button><button class="btn-danger" onclick="closeJForm()">Cancel</button></div>
       </div>
-
-      <!-- Job Form -->
-      <div class="job-form" id="job-form">
-        <div class="jf-heading" id="jf-heading">Post New Job</div>
-        <input type="hidden" id="jf-edit-id"/>
-        <div class="f-grid-2">
-          <div class="f-group">
-            <label>Job Title *</label>
-            <input type="text" id="jf-title" placeholder="e.g. Senior Full-Stack Engineer"/>
-          </div>
-          <div class="f-group">
-            <label>Department *</label>
-            <input type="text" id="jf-dept" placeholder="e.g. Engineering"/>
-          </div>
-        </div>
-        <div class="f-grid-2">
-          <div class="f-group">
-            <label>Salary Range *</label>
-            <input type="text" id="jf-salary" placeholder="e.g. $5,000–$7,500/mo"/>
-          </div>
-          <div class="f-group">
-            <label>Work Type</label>
-            <select id="jf-worktype">
-              <option>Remote</option>
-              <option>Hybrid</option>
-              <option>On-site</option>
-            </select>
-          </div>
-        </div>
-        <div class="f-grid-2">
-          <div class="f-group">
-            <label>Employment Type</label>
-            <select id="jf-emptype">
-              <option>Full-time</option>
-              <option>Part-time</option>
-              <option>Contract</option>
-            </select>
-          </div>
-          <div class="f-group">
-            <label>Skill Tags</label>
-            <input type="text" id="jf-tags" placeholder="e.g. React · Node.js · AWS"/>
-          </div>
-        </div>
-        <div class="jf-actions">
-          <button class="btn-primary" onclick="saveJob()">Save Job</button>
-          <button class="btn-ghost" onclick="closeJobForm()">Cancel</button>
-        </div>
-      </div>
-
       <div id="jobs-list"></div>
     </div>
-  </div>
 
-  <!-- ═══ FORM CONFIG PANEL ═══ -->
-  <div class="panel" id="panel-formconfig">
-    <div class="section-eyebrow reveal">Configuration</div>
-    <h1 class="section-title reveal delay-1">Form <em>Fields</em></h1>
-    <p class="section-sub reveal delay-2">Toggle fields on or off and rename their labels. Save to push changes live to the application form on the careers portal.</p>
+    <!-- SERVICE REQUESTS -->
+    <div class="tp" id="tab-requests">
+      <div class="tp-head"><div><div class="tp-title">Service Requests</div><div class="tp-sub">Assign a worker to each request. Workers review and forward to company email.</div></div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Client</th><th>Service</th><th>Description</th><th>Submitted</th><th>Verdict</th><th>Status</th><th>Assign Worker</th></tr></thead><tbody id="reqs-tbody"></tbody></table></div>
+    </div>
 
-    <div class="reveal delay-2">
-      <div class="mgmt-header">
-        <div class="mgmt-title">FIELD SETTINGS</div>
-        <button class="btn-primary" onclick="saveFormConfig()">Save Changes</button>
+    <!-- WORKERS -->
+    <div class="tp" id="tab-workers">
+      <div class="tp-head"><div><div class="tp-title">Workers</div><div class="tp-sub">Register and manage BBD service workers.</div></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start">
+        <div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:16px">Registered Workers</div><div id="workers-list"></div></div>
+        <div class="wform">
+          <div class="wf-title">Register New Worker</div>
+          <div class="wf-sub">Worker will sign in via the careers portal after being hired.</div>
+          <div class="werr" id="w-err"></div>
+          <div class="jfg"><label class="fi-label" style="margin-bottom:7px">Full Name *</label><input class="fi" type="text" id="wk-name" placeholder="Jane Doe"/></div>
+          <div class="jfg"><label class="fi-label" style="margin-bottom:7px">Email Address *</label><input class="fi" type="email" id="wk-email" placeholder="worker@bbd.com"/></div>
+          <div class="jfg"><label class="fi-label" style="margin-bottom:7px">Password *</label><input class="fi" type="text" id="wk-pass" placeholder="Create a login password"/></div>
+          <div class="jfg"><label class="fi-label" style="margin-bottom:7px">Specialisation</label><input class="fi" type="text" id="wk-spec" placeholder="e.g. Cloud Engineering"/></div>
+          <div class="jfg"><label class="fi-label" style="margin-bottom:7px">Atlantas Account Number</label><input class="fi" type="text" id="wk-accnum" placeholder="Enter account number" oninput="lookupWkAcc(this.value)"/><div class="acc-lkp" id="wk-acc-lkp"></div></div>
+          <button class="btn-act" style="width:100%;padding:13px;font-size:14px;border-radius:9px" onclick="registerWorker()">Register Worker →</button>
+        </div>
       </div>
-      <div id="form-config-list"></div>
+    </div>
+
+    <!-- SALARY -->
+    <div class="tp" id="tab-salary">
+      <div class="tp-head"><div><div class="tp-title">Pay Salary</div><div class="tp-sub">Credit weekly salary to workers' BBD balance. Workers withdraw to Atlantas whenever they want.</div></div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Worker</th><th>Specialisation</th><th>Atlantas Account</th><th>Current Balance</th><th>Total Earned</th><th>Pay</th></tr></thead><tbody id="salary-tbody"></tbody></table></div>
+      <div style="margin-top:32px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:16px">Payment History</div><div class="tbl-wrap"><table><thead><tr><th>Worker</th><th>Label</th><th>Amount</th><th>Paid On</th></tr></thead><tbody id="pay-history"></tbody></table></div></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="tp" id="tab-settings">
+      <div class="tp-head"><div><div class="tp-title">Settings</div><div class="tp-sub">Configure system-wide settings.</div></div></div>
+      <div class="cfg-card">
+        <div class="cfg-title">Company Email</div>
+        <div class="cfg-sub">The email address workers forward verified client requests to. Make sure it's correct — workers copy and send messages to this address.</div>
+        <div class="jfg"><label class="fi-label" style="margin-bottom:7px">Company Email Address</label><input class="fi" type="email" id="cfg-email" placeholder="team@bbdsoftware.com"/></div>
+        <button class="btn-act" style="padding:11px 24px;font-size:13px;border-radius:8px" onclick="saveConfig()">Save Settings</button>
+      </div>
     </div>
   </div>
-
-</div><!-- /main-app -->
+</div>
 
 <script>
-/* ═══════════════════════════════════
-   AUTH
-═══════════════════════════════════ */
-const ADMIN_CREDENTIALS = [
-  { user: 'admin', pass: 'BBD@2025' },
-  { user: 'superadmin', pass: 'BBDmaster#1' },
-];
+const CREDS=[{user:'admin',pass:'BBD@2025'},{user:'superadmin',pass:'BBDmaster#1'}];
+window._unlocked=false;window._apps=[];window._jobs=[];window._reqs=[];window._workers=[];window._config={};
+let _payTarget=null,_wkAccTimer=null,_verifiedWkAcc=null;
 
-window._adminUnlocked = false;
+function doLogin(){
+  const u=document.getElementById('l-user').value.trim();
+  const p=document.getElementById('l-pass').value;
+  const err=document.getElementById('lerr');
+  if(CREDS.find(c=>c.user===u&&c.pass===p)){
+    window._unlocked=true;
+    document.getElementById('sb-user').textContent=u;
+    document.getElementById('login-screen').classList.add('gone');
+    document.getElementById('app').classList.add('show');
+    refresh();
+  }else{err.textContent='Invalid credentials.';err.classList.add('show');document.getElementById('l-pass').value='';}
+}
+function logout(){window._unlocked=false;document.getElementById('login-screen').classList.remove('gone');document.getElementById('app').classList.remove('show');document.getElementById('l-user').value='';document.getElementById('l-pass').value='';}
 
-// Check session
-if(sessionStorage.getItem('bbd_admin_auth') === 'true'){
-  unlockApp(false);
+function showTab(id,btn){
+  document.querySelectorAll('.tp').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('tab-'+id).classList.add('on');btn.classList.add('on');
+  if(id==='overview')renderOverview();
+  if(id==='applicants')renderApplicants();
+  if(id==='jobs')renderJobs();
+  if(id==='requests')renderRequests();
+  if(id==='workers')renderWorkers();
+  if(id==='salary')renderSalary();
+  if(id==='settings')loadConfig();
 }
 
-function attemptLogin(){
-  const user = document.getElementById('login-user').value.trim();
-  const pass = document.getElementById('login-pass').value;
-  const err  = document.getElementById('login-error');
-
-  const match = ADMIN_CREDENTIALS.find(c => c.user === user && c.pass === pass);
-  if(match){
-    sessionStorage.setItem('bbd_admin_auth','true');
-    unlockApp(true);
-  } else {
-    err.classList.add('show');
-    setTimeout(()=>err.classList.remove('show'), 2500);
-    document.getElementById('login-pass').value = '';
-  }
+function refresh(){
+  updateBadges();
+  const active=document.querySelector('.tp.on')?.id?.replace('tab-','');
+  if(active==='overview')renderOverview();
+  if(active==='applicants')renderApplicants();
+  if(active==='jobs')renderJobs();
+  if(active==='requests')renderRequests();
+  if(active==='workers')renderWorkers();
+  if(active==='salary')renderSalary();
 }
 
-function unlockApp(animate){
-  window._adminUnlocked = true;
-  if(animate){
-    document.getElementById('login-screen').classList.add('hidden');
-    setTimeout(()=>{
-      document.getElementById('login-screen').style.display='none';
-      document.getElementById('main-app').classList.add('visible');
-      initScrollReveal();
-      refreshAll();
-    }, 700);
-  } else {
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('main-app').classList.add('visible');
-    initScrollReveal();
-  }
+function updateBadges(){
+  document.getElementById('b-apps').textContent=(window._apps||[]).length;
+  document.getElementById('b-reqs').textContent=(window._reqs||[]).filter(r=>r.status==='pending').length;
 }
 
-function logout(){
-  sessionStorage.removeItem('bbd_admin_auth');
-  window._adminUnlocked = false;
-  location.reload();
-}
+function appBadge(s){const m={received:`<span class="badge b-recv"><span class="bdot"></span>Received</span>`,review:`<span class="badge b-rev"><span class="bdot"></span>Review</span>`,hired:`<span class="badge b-hire"><span class="bdot"></span>Hired</span>`,rejected:`<span class="badge b-rej"><span class="bdot"></span>Rejected</span>`};return m[s]||`<span class="badge b-recv">${s}</span>`;}
+function reqBadge(s){const m={pending:`<span class="badge b-pend"><span class="bdot"></span>Pending</span>`,assigned:`<span class="badge b-asgn"><span class="bdot"></span>Assigned</span>`,'in-progress':`<span class="badge b-asgn"><span class="bdot"></span>In Progress</span>`,completed:`<span class="badge b-done"><span class="bdot"></span>Completed</span>`};return m[s]||`<span class="badge b-pend">${s}</span>`;}
+function verdictBadge(v){if(!v)return '<span style="font-size:11px;color:var(--muted)">—</span>';if(v==='spam')return `<span class="badge b-spam"><span class="bdot"></span>Spam</span>`;if(v==='legitimate')return `<span class="badge b-legit"><span class="bdot"></span>Legitimate</span>`;return '';}
 
-/* ═══════════════════════════════════
-   SCROLL REVEAL
-═══════════════════════════════════ */
-function initScrollReveal(){
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if(e.isIntersecting){
-        e.target.classList.add('visible');
-      }
-    });
-  }, { threshold: 0.08, rootMargin:'0px 0px -40px 0px' });
-
-  function observeAll(){
-    document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale').forEach(el => {
-      observer.observe(el);
-    });
-  }
-  observeAll();
-
-  // Re-observe when panels switch
-  window._observeAll = observeAll;
-}
-
-/* ═══════════════════════════════════
-   TABS
-═══════════════════════════════════ */
-function switchTab(name, btn){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  btn.classList.add('active');
-  const panel = document.getElementById('panel-'+name);
-  panel.classList.add('active');
-  window.scrollTo({top:0, behavior:'smooth'});
-
-  // Re-trigger reveal for newly shown panel
-  setTimeout(()=>{
-    panel.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale').forEach(el=>{
-      el.classList.remove('visible');
-      setTimeout(()=> el.classList.add('visible'), 20);
-    });
-    if(window._observeAll) window._observeAll();
-  }, 50);
-}
-
-/* ═══════════════════════════════════
-   DEFAULT FORM CONFIG
-═══════════════════════════════════ */
-function getDefaultFormConfig(){
-  return {
-    fields:[
-      {key:'fname',    label:'First Name',   enabled:true,  required:true,  type:'text',     section:'personal'},
-      {key:'lname',    label:'Last Name',    enabled:true,  required:true,  type:'text',     section:'personal'},
-      {key:'email',    label:'Email',        enabled:true,  required:true,  type:'email',    section:'personal'},
-      {key:'phone',    label:'Phone',        enabled:true,  required:false, type:'tel',      section:'personal'},
-      {key:'location', label:'Location',     enabled:true,  required:false, type:'text',     section:'personal'},
-      {key:'exp',      label:'Experience',   enabled:true,  required:false, type:'select',   section:'professional'},
-      {key:'start',    label:'Start Date',   enabled:true,  required:false, type:'date',     section:'professional'},
-      {key:'linkedin', label:'LinkedIn',     enabled:true,  required:false, type:'url',      section:'professional'},
-      {key:'cover',    label:'Cover Letter', enabled:true,  required:false, type:'textarea', section:'professional'},
-      {key:'cv',       label:'CV / Résumé',  enabled:true,  required:false, type:'upload',   section:'cv'},
-    ]
-  };
-}
-
-window._formConfig = getDefaultFormConfig();
-window._jobs = [];
-window._applications = [];
-
-/* ═══════════════════════════════════
-   REFRESH ALL
-═══════════════════════════════════ */
-function refreshAll(){
-  renderOverview();
-  renderApplicants();
-  renderJobs();
-  renderFormConfig();
-}
-
-/* ═══════════════════════════════════
-   OVERVIEW
-═══════════════════════════════════ */
 function renderOverview(){
-  const apps  = window._applications || [];
-  const jobs  = window._jobs || [];
-
-  document.getElementById('stat-total').textContent  = apps.length;
-  document.getElementById('stat-review').textContent = apps.filter(a=>a.status==='review').length;
-  document.getElementById('stat-hired').textContent  = apps.filter(a=>a.status==='hired').length;
-  document.getElementById('stat-jobs').textContent   = jobs.length;
-
-  const recent = [...apps].sort((a,b)=>b.timestamp-a.timestamp).slice(0,8);
-  const tbody = document.getElementById('overview-tbody');
-  if(!recent.length){
-    tbody.innerHTML=`<tr><td colspan="4" style="text-align:center;padding:44px;color:var(--faint);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;">NO APPLICATIONS YET</td></tr>`;
-    return;
-  }
-  tbody.innerHTML = recent.map(a=>`
-    <tr>
-      <td><div class="name-cell">
-        <div class="primary">${a.name||a.fname||'—'}</div>
-        <div class="secondary">${a.email||''}</div>
-      </div></td>
-      <td><div class="role-cell">
-        <div class="role-name">${a.role||'—'}</div>
-        <div class="dept-name">${a.dept||''}</div>
-      </div></td>
-      <td><div class="date-cell">${a.appliedAt||'—'}</div></td>
-      <td>${badge(a.status)}</td>
-    </tr>`).join('');
+  const apps=window._apps||[];const reqs=window._reqs||[];const wks=window._workers||[];
+  const totalPaid=wks.reduce((s,w)=>s+Number(w.totalEarned||0),0);
+  document.getElementById('ov-stats').innerHTML=`
+    <div class="sc"><div class="sc-num">${apps.length}</div><div class="sc-lbl">Applicants</div></div>
+    <div class="sc"><div class="sc-num" style="color:#4CAF7D">${apps.filter(a=>a.status==='hired').length}</div><div class="sc-lbl">Hired</div></div>
+    <div class="sc"><div class="sc-num">${reqs.length}</div><div class="sc-lbl">Service Requests</div></div>
+    <div class="sc"><div class="sc-num" style="color:var(--gold)">${reqs.filter(r=>r.status==='pending').length}</div><div class="sc-lbl">Pending</div></div>
+    <div class="sc"><div class="sc-num">${wks.length}</div><div class="sc-lbl">Workers</div></div>
+    <div class="sc"><div class="sc-num" style="color:#4CAF7D">$${totalPaid.toLocaleString()}</div><div class="sc-lbl">Total Paid Out</div></div>`;
+  const ra=[...apps].sort((a,b)=>b.timestamp-a.timestamp).slice(0,5);
+  document.getElementById('ov-apps').innerHTML=ra.length?ra.map(a=>`<tr><td><div class="td-name">${a.name||'—'}</div><div class="td-sub">${a.email||''}</div></td><td><div style="font-size:13px;color:var(--text)">${a.role||'—'}</div></td><td>${appBadge(a.status)}</td></tr>`).join(''):'<tr class="erow"><td colspan="3">No applications yet</td></tr>';
+  const rr=[...reqs].sort((a,b)=>b.timestamp-a.timestamp).slice(0,5);
+  document.getElementById('ov-reqs').innerHTML=rr.length?rr.map(r=>`<tr><td><div class="td-name">${r.clientName||'—'}</div><div class="td-sub">${r.clientEmail||''}</div></td><td><div style="font-size:13px;color:var(--text)">${r.serviceName||'—'}</div></td><td>${reqBadge(r.status)}</td></tr>`).join(''):'<tr class="erow"><td colspan="3">No requests yet</td></tr>';
 }
 
-/* ═══════════════════════════════════
-   APPLICANTS
-═══════════════════════════════════ */
 function renderApplicants(){
-  const apps = window._applications || [];
-  const tbody = document.getElementById('applicants-tbody');
-  if(!apps.length){
-    tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:60px;color:var(--faint);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;">NO APPLICATIONS ON FILE</td></tr>`;
-    return;
-  }
-  tbody.innerHTML = [...apps].sort((a,b)=>b.timestamp-a.timestamp).map(a=>`
-    <tr>
-      <td><div class="name-cell">
-        <div class="primary">${a.name||a.fname||'—'}</div>
-        <div class="secondary">${a.email||''}</div>
-      </div></td>
-      <td><div class="role-cell">
-        <div class="role-name">${a.role||'—'}</div>
-        <div class="dept-name">${a.dept||''}</div>
-      </div></td>
-      <td><div class="date-cell">${a.appliedAt||'—'}</div></td>
-      <td>${a.cvUrl
-        ? `<a class="cv-link" href="${a.cvUrl}" target="_blank">View CV ↗</a>`
-        : `<span style="color:var(--faint);font-family:'JetBrains Mono',monospace;font-size:9px">None</span>`}
-      </td>
-      <td>${badge(a.status)}</td>
-      <td>
-        <select class="status-select" onchange="updateStatus('${a._id}',this.value)">
-          <option value="received" ${a.status==='received'?'selected':''}>Received</option>
-          <option value="review"   ${a.status==='review'?'selected':''}>Under Review</option>
-          <option value="hired"    ${a.status==='hired'?'selected':''}>Hired ✓</option>
-          <option value="rejected" ${a.status==='rejected'?'selected':''}>Not Selected</option>
-        </select>
-      </td>
-    </tr>`).join('');
+  const apps=(window._apps||[]).sort((a,b)=>b.timestamp-a.timestamp);
+  const tb=document.getElementById('apps-tbody');
+  if(!apps.length){tb.innerHTML='<tr class="erow"><td colspan="6">No applications on file</td></tr>';return;}
+  tb.innerHTML=apps.map(a=>`<tr><td><div class="td-name">${a.name||'—'}</div><div class="td-sub">${a.email||''}</div></td><td><div style="font-size:13px;color:var(--paper)">${a.role||'—'}</div><div class="td-sub">${a.dept||''}</div></td><td><div class="td-sub">${a.appliedAt||'—'}</div></td><td>${a.cvUrl?`<a class="cv-lnk" href="${a.cvUrl}" target="_blank">View ↗</a>`:'<span style="color:var(--muted);font-size:11px">None</span>'}</td><td>${appBadge(a.status)}</td><td><select class="ctrl-sel" onchange="updAppStatus('${a._id}',this.value)"><option value="received" ${a.status==='received'?'selected':''}>Received</option><option value="review" ${a.status==='review'?'selected':''}>Under Review</option><option value="hired" ${a.status==='hired'?'selected':''}>Hired ✓</option><option value="rejected" ${a.status==='rejected'?'selected':''}>Not Selected</option></select></td></tr>`).join('');
 }
+async function updAppStatus(id,status){try{await window._update(window._ref(window._db,`bbd_applications/${id}`),{status});showToast('Status updated');}catch(e){showToast('Update failed');}}
 
-async function updateStatus(id, status){
-  if(!window._db) return;
-  try{
-    await window._dbUpdate(window._dbRef(window._db,`bbd_applications/${id}`),{status});
-    showToast('Status updated');
-  } catch(e){ showToast('Update failed'); }
-}
-
-/* ═══════════════════════════════════
-   JOBS
-═══════════════════════════════════ */
+function toggleJForm(reset=true){const f=document.getElementById('jform');if(f.classList.contains('open')&&reset){closeJForm();return;}if(reset){document.getElementById('jftitle').textContent='Post New Job';document.getElementById('jf-eid').value='';['jf-title','jf-dept','jf-sal','jf-tags'].forEach(id=>document.getElementById(id).value='');document.getElementById('jf-wtype').value='Remote';document.getElementById('jf-etype').value='Full-time';}f.classList.add('open');}
+function closeJForm(){document.getElementById('jform').classList.remove('open');}
 function renderJobs(){
-  const jobs = window._jobs || [];
-  const list = document.getElementById('jobs-list');
-  if(!jobs.length){
-    list.innerHTML=`<div class="empty"><div class="empty-mark">BBD</div><div class="empty-title">NO LISTINGS YET</div><div class="empty-sub">Post your first job role using the button above.</div></div>`;
-    return;
-  }
-  list.innerHTML = [...jobs].sort((a,b)=>(b.timestamp||0)-(a.timestamp||0)).map(j=>`
-    <div class="job-row">
-      <div class="jr-info">
-        <div class="jr-title">${j.title||''}</div>
-        <div class="jr-meta">${j.dept||''} · ${j.workType||''} · ${j.empType||''} ${j.tags?'· '+j.tags:''}</div>
-      </div>
-      <div class="jr-salary">${j.salary||''}</div>
-      <div class="jr-actions">
-        <button class="btn-ghost" onclick="editJob('${j._id}')">Edit</button>
-        <button class="btn-danger" onclick="deleteJob('${j._id}')">Delete</button>
-      </div>
-    </div>`).join('');
+  const jobs=(window._jobs||[]).sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+  const list=document.getElementById('jobs-list');
+  if(!jobs.length){list.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);font-family:\'JetBrains Mono\',monospace;font-size:10px;letter-spacing:2px">No job listings yet</div>';return;}
+  list.innerHTML=jobs.map(j=>`<div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:8px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;transition:border-color 0.2s" onmouseover="this.style.borderColor='rgba(184,50,50,0.2)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.07)'"><div style="flex:1"><div style="font-weight:600;color:var(--paper)">${j.title}</div><div class="td-sub">${j.dept} · ${j.workType||''} · ${j.empType||''} ${j.tags?'· '+j.tags:''}</div></div><div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold);margin-right:12px">${j.salary||''}</div><div style="display:flex;gap:8px"><button class="btn-act" onclick="editJob('${j._id}')">Edit</button><button class="btn-danger" onclick="delJob('${j._id}')">Delete</button></div></div>`).join('');
 }
-
-function toggleJobForm(){
-  const f = document.getElementById('job-form');
-  const isOpen = f.classList.contains('open');
-  if(isOpen){ closeJobForm(); return; }
-  document.getElementById('jf-heading').textContent = 'Post New Job';
-  document.getElementById('jf-edit-id').value = '';
-  document.getElementById('jf-title').value = '';
-  document.getElementById('jf-dept').value = '';
-  document.getElementById('jf-salary').value = '';
-  document.getElementById('jf-worktype').value = 'Remote';
-  document.getElementById('jf-emptype').value = 'Full-time';
-  document.getElementById('jf-tags').value = '';
-  f.classList.add('open');
-  f.scrollIntoView({behavior:'smooth', block:'start'});
-}
-
-function editJob(id){
-  const job = (window._jobs||[]).find(j=>j._id===id);
-  if(!job) return;
-  const f = document.getElementById('job-form');
-  f.classList.add('open');
-  document.getElementById('jf-heading').textContent = 'Edit Job';
-  document.getElementById('jf-edit-id').value = id;
-  document.getElementById('jf-title').value = job.title||'';
-  document.getElementById('jf-dept').value = job.dept||'';
-  document.getElementById('jf-salary').value = job.salary||'';
-  document.getElementById('jf-worktype').value = job.workType||'Remote';
-  document.getElementById('jf-emptype').value = job.empType||'Full-time';
-  document.getElementById('jf-tags').value = job.tags||'';
-  f.scrollIntoView({behavior:'smooth', block:'start'});
-}
-
-function closeJobForm(){
-  document.getElementById('job-form').classList.remove('open');
-}
-
 async function saveJob(){
-  const title = document.getElementById('jf-title').value.trim();
-  const dept  = document.getElementById('jf-dept').value.trim();
-  const salary= document.getElementById('jf-salary').value.trim();
-  if(!title||!dept){ showToast('Title and Department are required'); return; }
-  if(!window._db){ showToast('System initializing'); return; }
+  const title=document.getElementById('jf-title').value.trim();const dept=document.getElementById('jf-dept').value.trim();
+  if(!title||!dept){showToast('Title and Department required');return;}
+  const eid=document.getElementById('jf-eid').value;
+  const entry={title,dept,salary:document.getElementById('jf-sal').value.trim(),workType:document.getElementById('jf-wtype').value,empType:document.getElementById('jf-etype').value,tags:document.getElementById('jf-tags').value.trim(),timestamp:Date.now()};
+  showLoader(true);
+  try{if(eid){await window._update(window._ref(window._db,`bbd_jobs/${eid}`),entry);}else{await window._set(window._push(window._ref(window._db,'bbd_jobs')),entry);}showLoader(false);closeJForm();showToast('Job saved');}catch(e){showLoader(false);showToast('Save failed');}
+}
+function editJob(id){const j=(window._jobs||[]).find(j=>j._id===id);if(!j)return;document.getElementById('jform').classList.add('open');document.getElementById('jftitle').textContent='Edit Job';document.getElementById('jf-eid').value=id;document.getElementById('jf-title').value=j.title||'';document.getElementById('jf-dept').value=j.dept||'';document.getElementById('jf-sal').value=j.salary||'';document.getElementById('jf-wtype').value=j.workType||'Remote';document.getElementById('jf-etype').value=j.empType||'Full-time';document.getElementById('jf-tags').value=j.tags||'';}
+async function delJob(id){if(!confirm('Delete this listing?'))return;try{await window._remove(window._ref(window._db,`bbd_jobs/${id}`));showToast('Deleted');}catch(e){showToast('Failed');}}
 
-  const editId = document.getElementById('jf-edit-id').value;
-  const entry = {
-    title, dept, salary,
-    workType:  document.getElementById('jf-worktype').value,
-    empType:   document.getElementById('jf-emptype').value,
-    tags:      document.getElementById('jf-tags').value.trim(),
-    timestamp: Date.now()
-  };
+function renderRequests(){
+  const reqs=(window._reqs||[]).sort((a,b)=>b.timestamp-a.timestamp);
+  const tb=document.getElementById('reqs-tbody');
+  if(!reqs.length){tb.innerHTML='<tr class="erow"><td colspan="7">No service requests yet</td></tr>';return;}
+  const wkOpts=(window._workers||[]).map(w=>`<option value="${w._id}">${w.name}</option>`).join('');
+  tb.innerHTML=reqs.map(r=>`<tr><td><div class="td-name">${r.clientName||'—'}</div><div class="td-sub">${r.clientEmail||''}</div>${r.company?`<div class="td-sub">${r.company}</div>`:''}</td><td><div style="font-size:13px;color:var(--paper)">${r.serviceName||'—'}</div>${r.budget?`<div class="td-sub">${r.budget}</div>`:''}</td><td><div class="td-sub" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.description||''}">${r.description||''}</div></td><td><div class="td-sub">${r.submittedAt||'—'}</div></td><td>${verdictBadge(r.workerVerdict)}${r.verdictBy?`<div class="td-sub" style="margin-top:4px">by ${r.verdictBy}</div>`:''}</td><td>${reqBadge(r.status)}</td><td><div class="ctrl-row"><select class="ctrl-sel" id="ws-${r._id}"><option value="">Assign…</option>${wkOpts}</select><button class="btn-act" onclick="assignWorker('${r._id}')">Assign</button></div>${r.assignedWorkerName?`<div style="font-size:11px;color:#4CAF7D;margin-top:5px">→ ${r.assignedWorkerName}</div>`:''}</td></tr>`).join('');
+  reqs.forEach(r=>{if(r.assignedWorkerUid){const sel=document.getElementById('ws-'+r._id);if(sel)sel.value=r.assignedWorkerUid;}});
+}
+async function assignWorker(reqId){
+  const sel=document.getElementById('ws-'+reqId);if(!sel)return;
+  const wkId=sel.value;if(!wkId){showToast('Select a worker first');return;}
+  const wk=(window._workers||[]).find(w=>w._id===wkId);if(!wk)return;
+  showLoader(true);
+  try{await window._update(window._ref(window._db,`bbd_service_requests/${reqId}`),{assignedWorkerUid:wkId,assignedWorkerName:wk.name,assignedWorkerEmail:wk.email,status:'assigned'});showLoader(false);showToast(`Assigned to ${wk.name}`);}
+  catch(e){showLoader(false);showToast('Assignment failed');}
+}
 
+function renderWorkers(){
+  const wks=window._workers||[];
+  const list=document.getElementById('workers-list');
+  if(!wks.length){list.innerHTML='<div style="color:var(--muted);font-size:13px;padding:16px 0;font-family:\'JetBrains Mono\',monospace;font-size:11px;letter-spacing:1px">No workers registered yet.</div>';return;}
+  list.innerHTML=wks.map(w=>`<div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;transition:border-color 0.2s" onmouseover="this.style.borderColor='rgba(184,50,50,0.2)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.07)'"><div><div style="font-weight:600;color:var(--paper)">${w.name}</div><div class="td-sub">${w.email}</div>${w.specialisation?`<div style="font-size:12px;color:var(--red);margin-top:3px">${w.specialisation}</div>`:''}<div class="td-sub" style="margin-top:3px">Balance: <span style="color:#4CAF7D">$${Number(w.balance||0).toLocaleString('en',{minimumFractionDigits:2})}</span></div></div><button class="btn-danger" onclick="delWorker('${w._id}')">Remove</button></div>`).join('');
+}
+async function delWorker(id){if(!confirm('Remove this worker?'))return;try{await window._remove(window._ref(window._db,`bbd_portal_workers/${id}`));showToast('Worker removed');}catch(e){showToast('Failed');}}
+
+let _wkAccTimer2=null;
+function lookupWkAcc(val){
+  clearTimeout(_wkAccTimer2);_verifiedWkAcc=null;
+  const box=document.getElementById('wk-acc-lkp');
+  if(!val||val.length<4){box.classList.remove('show');return;}
+  _wkAccTimer2=setTimeout(async()=>{
+    box.classList.add('show');box.innerHTML='<span style="font-size:12px;color:var(--muted)">Looking up…</span>';
+    try{
+      const snap=await window._get(window._query(window._ref(window._db,'users'),window._obc('accountNumber'),window._eq(val.trim())));
+      if(snap.exists()){const u=Object.values(snap.val())[0];const name=u.name||u.fullName||u.fname||'Account Holder';_verifiedWkAcc={accountNumber:val.trim(),name};box.innerHTML=`<div class="al-name">${name}</div><div class="al-sub">${val.trim()}</div><div class="al-ok">✓ Verified Atlantas account</div>`;}
+      else{box.innerHTML=`<div class="al-err">Account not found</div>`;}
+    }catch(e){box.innerHTML=`<div class="al-err">Lookup failed</div>`;}
+  },600);
+}
+
+async function registerWorker(){
+  const name=document.getElementById('wk-name').value.trim();
+  const email=document.getElementById('wk-email').value.trim().toLowerCase();
+  const pass=document.getElementById('wk-pass').value.trim();
+  const spec=document.getElementById('wk-spec').value.trim();
+  const acc=document.getElementById('wk-accnum').value.trim();
+  const err=document.getElementById('w-err');err.classList.remove('show');
+  if(!name||!email||!pass){err.textContent='Name, email and password are required.';err.classList.add('show');return;}
   showLoader(true);
   try{
-    if(editId){
-      await window._dbUpdate(window._dbRef(window._db,`bbd_jobs/${editId}`), entry);
-      showToast('Job updated successfully');
-    } else {
-      const r = window._dbPush(window._dbRef(window._db,'bbd_jobs'));
-      await window._dbSet(r, entry);
-      showToast('Job posted — live on careers portal');
-    }
-    showLoader(false);
-    closeJobForm();
-  } catch(e){
-    showLoader(false);
-    showToast('Save failed — check connection');
-  }
+    const wRef=window._push(window._ref(window._db,'bbd_portal_workers'));
+    await window._set(wRef,{name,email,password:pass,specialisation:spec,atlantasAccount:acc,atlantasName:_verifiedWkAcc?_verifiedWkAcc.name:'',balance:0,totalEarned:0,createdAt:Date.now()});
+    showLoader(false);showToast(`${name} registered as a worker`);
+    ['wk-name','wk-email','wk-pass','wk-spec','wk-accnum'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('wk-acc-lkp').classList.remove('show');_verifiedWkAcc=null;
+  }catch(e){showLoader(false);err.textContent='Registration failed.';err.classList.add('show');}
 }
 
-async function deleteJob(id){
-  if(!confirm('Permanently delete this job listing?')) return;
-  if(!window._db) return;
-  try{
-    await window._dbRemove(window._dbRef(window._db,`bbd_jobs/${id}`));
-    showToast('Job deleted');
-  } catch(e){ showToast('Delete failed'); }
+function renderSalary(){
+  const wks=window._workers||[];
+  const tb=document.getElementById('salary-tbody');
+  if(!wks.length){tb.innerHTML='<tr class="erow"><td colspan="6">No workers registered yet</td></tr>';renderPayHistory();return;}
+  tb.innerHTML=wks.map(w=>`<tr><td><div class="td-name">${w.name}</div><div class="td-sub">${w.email}</div></td><td><div style="font-size:13px;color:var(--text)">${w.specialisation||'—'}</div></td><td><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold)">${w.atlantasAccount||'—'}</div></td><td><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--accent)">$${Number(w.balance||0).toLocaleString('en',{minimumFractionDigits:2})}</div></td><td><div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#4CAF7D">$${Number(w.totalEarned||0).toLocaleString('en',{minimumFractionDigits:2})}</div></td><td><button class="btn-pay" onclick="openPay('${w._id}')">💳 Pay Salary</button></td></tr>`).join('');
+  renderPayHistory();
 }
 
-/* ═══════════════════════════════════
-   FORM CONFIG
-═══════════════════════════════════ */
-function renderFormConfig(){
-  const cfg = window._formConfig || getDefaultFormConfig();
-  const list = document.getElementById('form-config-list');
-  list.innerHTML = cfg.fields.map((f,i)=>`
-    <div class="config-row">
-      <div class="toggle ${f.enabled?'on':''}" onclick="toggleField(${i})"></div>
-      <div class="toggle-label">${f.enabled?'ON':'OFF'}</div>
-      <div class="config-field-name">
-        <input type="text" value="${f.label}" onchange="relabelField(${i},this.value)" ${!f.enabled?'disabled style="opacity:0.35"':''}/>
-      </div>
-      <div class="config-required" style="${!f.enabled?'opacity:0.3':''}">
-        ${f.required?`<span style="color:var(--ember)">Required</span>`:'Optional'}
-      </div>
-      <div class="config-key">${f.key}</div>
-    </div>`).join('');
+function renderPayHistory(){
+  const wks=window._workers||[];
+  const allPayments=[];
+  wks.forEach(w=>{if(w.earningsHistory){Object.values(w.earningsHistory).forEach(e=>allPayments.push({...e,workerName:w.name}));}});
+  allPayments.sort((a,b)=>b.paidAt-a.paidAt);
+  const tb=document.getElementById('pay-history');
+  if(!allPayments.length){tb.innerHTML='<tr class="erow"><td colspan="4">No payments made yet</td></tr>';return;}
+  tb.innerHTML=allPayments.map(p=>`<tr><td><div class="td-name">${p.workerName||'—'}</div></td><td><div style="font-size:13px;color:var(--text)">${p.label||'Salary Payment'}</div></td><td><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#4CAF7D">$${Number(p.amount).toLocaleString('en',{minimumFractionDigits:2})}</div></td><td><div class="td-sub">${p.paidAtStr||'—'}</div></td></tr>`).join('');
 }
 
-function toggleField(i){
-  const cfg = window._formConfig || getDefaultFormConfig();
-  const core = ['fname','lname','email'];
-  if(core.includes(cfg.fields[i].key)){ showToast('Core field — cannot be disabled'); return; }
-  cfg.fields[i].enabled = !cfg.fields[i].enabled;
-  window._formConfig = cfg;
-  renderFormConfig();
+function openPay(wkId){
+  const wk=(window._workers||[]).find(w=>w._id===wkId);if(!wk)return;
+  _payTarget=wk;
+  document.getElementById('pay-info').innerHTML=`<div class="pi-row"><span class="pi-lbl">Worker</span><span style="color:var(--paper)">${wk.name}</span></div><div class="pi-row"><span class="pi-lbl">Atlantas Account</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold)">${wk.atlantasAccount||'None on file'}</span></div><div class="pi-row"><span class="pi-lbl">Current Balance</span><span style="color:var(--accent)">$${Number(wk.balance||0).toLocaleString('en',{minimumFractionDigits:2})}</span></div><div class="pi-row"><span class="pi-lbl">Total Earned</span><span style="color:#4CAF7D">$${Number(wk.totalEarned||0).toLocaleString('en',{minimumFractionDigits:2})}</span></div>`;
+  document.getElementById('pay-amount').value='';
+  document.getElementById('pay-label').value=`Week of ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`;
+  document.getElementById('pay-err').classList.remove('show');
+  document.getElementById('pay-modal').classList.add('show');
 }
+function closePay(){document.getElementById('pay-modal').classList.remove('show');_payTarget=null;}
 
-function relabelField(i, val){
-  const cfg = window._formConfig || getDefaultFormConfig();
-  cfg.fields[i].label = val;
-  window._formConfig = cfg;
-}
-
-async function saveFormConfig(){
-  if(!window._db){ showToast('System initializing'); return; }
+async function confirmPay(){
+  if(!_payTarget)return;
+  const amt=parseFloat(document.getElementById('pay-amount').value);
+  const label=document.getElementById('pay-label').value.trim()||`Week of ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`;
+  const err=document.getElementById('pay-err');
+  if(!amt||amt<=0){err.textContent='Please enter a valid amount.';err.classList.add('show');return;}
   showLoader(true);
   try{
-    await window._dbSet(window._dbRef(window._db,'bbd_form_config'), window._formConfig);
-    showLoader(false);
-    showToast('Form config saved — careers portal updated');
-  } catch(e){
-    showLoader(false);
-    showToast('Save failed');
-  }
+    const wk=_payTarget;
+    const newBalance=Number(wk.balance||0)+amt;
+    const newTotal=Number(wk.totalEarned||0)+amt;
+    const payRecord={amount:amt,label,paidAt:Date.now(),paidAtStr:new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})};
+    const newHistory={...(wk.earningsHistory||{}),[`p_${Date.now()}`]:payRecord};
+    await window._update(window._ref(window._db,`bbd_portal_workers/${wk._id}`),{balance:newBalance,totalEarned:newTotal,earningsHistory:newHistory});
+    showLoader(false);closePay();showToast(`$${amt.toLocaleString()} credited to ${wk.name}'s balance.`);
+  }catch(e){showLoader(false);err.textContent='Payment failed. Please try again.';err.classList.add('show');}
 }
 
-/* ═══════════════════════════════════
-   BADGE
-═══════════════════════════════════ */
-function badge(s){
-  const map = {
-    received: `<span class="badge badge-recv"><span class="b-dot"></span>Received</span>`,
-    review:   `<span class="badge badge-rev"><span class="b-dot"></span>Under Review</span>`,
-    hired:    `<span class="badge badge-hire"><span class="b-dot"></span>Hired</span>`,
-    rejected: `<span class="badge badge-rej"><span class="b-dot"></span>Not Selected</span>`,
-  };
-  return map[s] || `<span style="color:var(--faint);font-family:'JetBrains Mono',monospace;font-size:9px">${s||'—'}</span>`;
+function loadConfig(){const el=document.getElementById('cfg-email');if(el)el.value=window._config?.companyEmail||'';}
+async function saveConfig(){
+  const email=document.getElementById('cfg-email').value.trim();
+  if(!email){showToast('Please enter a valid email address.');return;}
+  showLoader(true);
+  try{await window._update(window._ref(window._db,'bbd_config'),{companyEmail:email});showLoader(false);showToast('Settings saved. Workers will forward to: '+email);}
+  catch(e){showLoader(false);showToast('Save failed.');}
 }
 
-/* ═══════════════════════════════════
-   UTILS
-═══════════════════════════════════ */
-function showToast(msg){
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 3200);
-}
-function showLoader(v){ document.getElementById('loader').classList.toggle('show',v); }
+function showLoader(v){document.getElementById('loader').classList.toggle('show',v);}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
 </script>
 </body>
 </html>
